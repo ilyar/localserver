@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print">
+
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <title>localserver by ilyar</title>
+  </head>
+
+  <body>
+    <header>
+      <div class="inner">
+        <h1>localserver</h1>
+        <h2>Easy development Server on Vagrant</h2>
+        <a href="https://github.com/ilyar/localserver" class="button"><small>View project on</small> GitHub</a>
+      </div>
+    </header>
+
+    <div id="content-wrapper">
+      <div class="inner clearfix">
+        <section id="main-content">
+          <p>Make it very easy to setup a complete development stack (MySQL, PHP, NodeJS, etc) in a matter of minutes.</p>
+
+<h2>
+<a name="requirements" class="anchor" href="#requirements"><span class="octicon octicon-link"></span></a>Requirements</h2>
+
+<ul>
+<li>VirtualBox <a href="http://www.virtualbox.com">http://www.virtualbox.com</a>
+</li>
+<li>Vagrant <a href="http://www.vagrantup.com">http://www.vagrantup.com</a>
+
+<ul>
+<li>
+<a href="https://github.com/smdahlen/vagrant-hostmanager">vagrant-hostmanager</a> <code>vagrant plugin install vagrant-hostmanager</code>
+</li>
+</ul>
+</li>
+</ul><h2>
+<a name="usage" class="anchor" href="#usage"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>Download <a href="http://ilyar.github.io/localserver/Vagrantfile">Vagrantfile</a> to <code>project_name_dir</code> and up server</p>
+
+<pre><code>$ cd project_name_dir
+$ wget http://ilyar.github.io/localserver/Vagrantfile
+$ vagrant up
+</code></pre>
+
+<p>The project is available at <code>http://project_name_dir.local/</code></p>
+
+<p>Note:</p>
+
+<pre><code>$ vagrant suspend # suspends the machine
+$ vagrant halt # stops the vagrant machine
+$ vagrant destroy -f # stops and deletes all traces of the vagrant machine
+</code></pre>
+
+<p>And like any other vagrant file you have SSH access with:</p>
+
+<pre><code>$ vagrant ssh
+</code></pre>
+
+<p>also can run once command:</p>
+
+<pre><code>$ ssh vagrant@localserver pwd
+</code></pre>
+
+<h2>
+<a name="docs-for-setup-ide" class="anchor" href="#docs-for-setup-ide"><span class="octicon octicon-link"></span></a>Docs for setup IDE</h2>
+
+<ul>
+<li><a href="http://blog.jetbrains.com/phpstorm/2014/04/php-remote-interpreters-support-in-phpstorm-8-eap/">PHP Remote Interpreters Support in PhpStorm 8 EAP</a></li>
+<li>
+<a href="http://www.sitepoint.com/install-xdebug-phpstorm-vagrant/">How to Install Xdebug with PHPStorm and Vagrant</a> read from <code>Configuring PHPStorm – Servers</code> </li>
+<li><a href="http://confluence.jetbrains.com/display/PhpStorm/Working+with+Advanced+Vagrant+features+in+PhpStorm">Working with Advanced Vagrant features in PhpStorm</a></li>
+</ul><h2>
+<a name="technical-details" class="anchor" href="#technical-details"><span class="octicon octicon-link"></span></a>Technical Details</h2>
+
+<ul>
+<li>Ubuntu 14.04 LTS 32-bit (for use 64-bit set <code>VM_ARCH=64</code>)</li>
+<li>Apache 2</li>
+<li>MySQL 5.5</li>
+<li>PHP 5.5 (with modules: apc, memcached, cli, curl, gd, imap, mysql, mcrypt, sqlite, xdebug, xsl, pear, intl, tidy, readline) and tools:
+
+<ul>
+<li>phpmyadmin <a href="http://localserver/phpmyadmin/">http://localserver/phpmyadmin/</a>
+</li>
+<li>
+<a href="https://getcomposer.org/">composer</a> — Dependency Manager for PHP</li>
+<li>
+<a href="https://github.com/francoispluchino/composer-asset-plugin/blob/master/Resources/doc/index.md">composer-asset-plugin</a> — NPM/Bower Dependency Manager for Composer</li>
+<li>
+<a href="https://github.com/fabpot/PHP-CS-Fixer#usage">php-cs-fixer</a> — PHP Coding Standards Fixer</li>
+</ul>
+</li>
+<li>NodeJs (node, npm, bower)</li>
+</ul><p>We are using the base Ubuntu 14.04 box from Vagrant. If you don't already have it downloaded
+the Vagrantfile has been configured to do it for you. This only has to be done once
+for each account on your host computer.</p>
+
+<p>The web root is located in the project directory and you can install your files there.</p>
+
+<h2>
+<a name="default-credentials" class="anchor" href="#default-credentials"><span class="octicon octicon-link"></span></a>Default credentials</h2>
+
+<h3>
+<a name="mysql" class="anchor" href="#mysql"><span class="octicon octicon-link"></span></a>MySQL</h3>
+
+<p>Externally the MySQL server is available at <code>localserver:3306</code>, and when running on the VM it is available as a socket or at port 3306 as usual.
+Username: root
+Password: local</p>
+
+<h3>
+<a name="project-settings-for-customize-in-vagrantfile" class="anchor" href="#project-settings-for-customize-in-vagrantfile"><span class="octicon octicon-link"></span></a>Project settings for customize in <code>Vagrantfile</code>
+</h3>
+
+<div class="highlight highlight-bash"><pre><span class="nv">custom_project_name</span>  <span class="o">=</span> <span class="nb">false</span> <span class="c"># default from project name folder</span>
+<span class="nv">custom_project_host</span>  <span class="o">=</span> <span class="nb">false</span> <span class="c"># default `project_name.local`</span>
+<span class="nv">custom_project_alias</span> <span class="o">=</span> <span class="nb">false</span> <span class="c"># default `www.project_name.local`</span>
+
+<span class="nv">custom_ip_address</span>    <span class="o">=</span> <span class="nb">false</span> <span class="c"># default "10.0.0.10"</span>
+<span class="nv">custom_default_host</span>  <span class="o">=</span> <span class="nb">false</span> <span class="c"># default "localserver"</span>
+
+<span class="nv">custom_vm_arch</span>       <span class="o">=</span> <span class="nb">false</span> <span class="c"># default 32  or VM_ARCH</span>
+<span class="nv">custom_vm_memory</span>     <span class="o">=</span> <span class="nb">false</span> <span class="c"># default 512 or VM_MEMORY</span>
+<span class="nv">custom_vm_cores</span>      <span class="o">=</span> <span class="nb">false</span> <span class="c"># default 1   or VM_CORES</span>
+</pre></div>
+        </section>
+      </div>
+    </div>
+
+            <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-47068199-1");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+  </body>
+</html>
