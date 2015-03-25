@@ -198,14 +198,16 @@ Vagrant.configure("2") do |config|
   # Use hostonly network with a static IP Address and enable
   # hostmanager so we can have a custom domain for the server
   # by modifying the host machines hosts file
-  config.hostmanager.enabled = true
-  config.hostmanager.manage_host = true
-  config.vm.define project_name do |node|
-    node.vm.hostname = default_host
-    node.vm.network :private_network, ip: ip_address
-    node.hostmanager.aliases = hostmanager_aliases
+  if Vagrant.has_plugin?("vagrant-hostmanager")
+    config.hostmanager.enabled = true
+    config.hostmanager.manage_host = true
+    config.vm.define project_name do |node|
+      node.vm.hostname = default_host
+      node.vm.network :private_network, ip: ip_address
+      node.hostmanager.aliases = hostmanager_aliases
+    end
+    config.vm.provision :hostmanager
   end
-  config.vm.provision :hostmanager
 
   config.ssh.shell = "bash -c 'BASH_ENV=/etc/profile exec bash'"
 
