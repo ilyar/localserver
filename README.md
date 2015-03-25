@@ -5,8 +5,9 @@ Make it very easy to setup a complete development stack (MySQL, PHP, NodeJS, etc
 ## Requirements
 
 * VirtualBox <http://www.virtualbox.com>
-* Vagrant <http://www.vagrantup.com>
+* Vagrant <http://www.vagrantup.com> and optional plugins:
  * [vagrant-hostmanager](https://github.com/smdahlen/vagrant-hostmanager) `vagrant plugin install vagrant-hostmanager`
+ * [vagrant-cachier](http://fgrehm.viewdocs.io/vagrant-cachier) `vagrant plugin install vagrant-cachier`
 
 ## Usage
 

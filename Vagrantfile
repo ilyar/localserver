@@ -175,6 +175,11 @@ Vagrant.configure("2") do |config|
   config.vm.box = "ubuntu/trusty#{ARCH}"
   config.vm.box_version = ">= 14.04"
 
+  # Config vagrant-cachier
+  if Vagrant.has_plugin?("vagrant-cachier")
+    config.cache.scope = :box
+  end
+
   # Set share folder
   config.vm.synced_folder "./" , "/var/www/#{project_name}", :mount_options => ["dmode=777", "fmode=666"]
 
