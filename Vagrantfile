@@ -1,170 +1,145 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
+# localserver on vagrant http://ilyar.github.io/localserver/
 
-################################################################
-#                                                              #
-#  localserver on vagrant http://ilyar.github.io/localserver/  #
-#                                                              #
-################################################################
+# General project settings for customize
+project_dir = File.basename(File.dirname(__FILE__))
+project_name = File.basename(project_dir)
+project_host = "#{project_name}.local"
+project_host_alias = "mhp-test.mocotms.local"
+#TODO custom IP Address
 
-# Project settings for customize
-
-custom_project_name  = false # default from project name folder
-custom_project_host  = false # default `project_name.local`
-custom_project_alias = false # default `www.project_name.local`
-
-custom_ip_address    = false # default "10.0.0.10" IP Address IPv4 private network range
-custom_default_host  = false # default "localserver"
-
-custom_vm_arch       = false # default 32  or VM_ARCH
-custom_vm_memory     = false # default 512 or VM_MEMORY
-custom_vm_cores      = false # default 1   or VM_CORES
+# Environment variables
+ARCH = ENV['VM_ARCH'] || 32
+MEMORY = ENV['VM_MEMORY'] || 1024
+CORES = ENV['VM_CORES'] || 2
 
 # Development script any command for run `vagrant provision`
 $server_script = <<SCRIPT
 
 SCRIPT
 
-# Check script
-$check = <<SCRIPT
-
-    git --version
-    php -v
-    composer --version
-    echo node $(node -v)
-    echo npm $(npm -v)
-    echo bower $(bower -v)
+# Setup once App
+$setup_app = <<SCRIPT
 
 SCRIPT
 
-# General project settings for customize
+# Check script
+$check = <<SCRIPT
 
-project_name = $custom_project_name || File.basename(File.dirname(__FILE__))
-project_host = $custom_project_host || "#{project_name}.local"
-project_host_alias = $custom_project_host_alias || "www.#{project_name}.local"
-ip_address = $custom_ip_address || "10.0.0.10"
-default_host = $custom_default_host || "localserver"
-hostmanager_aliases = ["#{project_host}", "#{project_host_alias}"]
-
-# Environment variables
-
-ARCH = $custom_vm_arch || ENV['VM_ARCH'] || 32
-MEMORY = $custom_vm_memory || ENV['VM_MEMORY'] || 512
-CORES = $custom_vm_cores || ENV['VM_CORES'] || 1
-
-# Virtual host setup
-
-$virtual_host = <<SCRIPT
-
-    echo "Setup: virtual host..."
-    echo "<VirtualHost *:80>
-      ServerName #{project_host}
-      ServerAlias #{$project_host_alias}
-
-      DocumentRoot /var/www/#{project_name}
-
-      <Directory /var/www/#{project_name}>
-        Options Indexes FollowSymLinks MultiViews
-        AllowOverride All
-        Order allow,deny
-        allow from all
-      </Directory>
-
-      # Available loglevels: trace8, ..., trace1, debug, info, notice, warn, error, crit, alert, emerg.
-      LogLevel info
-      ErrorLog /var/www/#{project_name}/log/apache-error.log
-      CustomLog /var/www/#{project_name}/log/apache-access.log combined
-    </VirtualHost>" > /etc/apache2/sites-available/#{project_name}.conf
-
-    a2ensite #{project_name}
-
-    # Restart Services
-    service apache2 restart
+lsb_release -a
+apachectl -V
+php -v
+php -m
+mysql --version
+phing -version
+java -version
+git --version
+mysql --version
+phing -version
+composer --version
+echo node $(node -v)
+echo npm $(npm -v)
+echo bower $(bower -v)
 
 SCRIPT
 
 # Setup script
-$script = <<SCRIPT
+$setup = <<SCRIPT
 
-    # Update the server
-    echo "Update server..."
-    apt-get update -qq && apt-get upgrade -qq -y --fix-missing
+# Update the server
+sudo add-apt-repository ppa:git-core/ppa -y
+sudo add-apt-repository ppa:ondrej/php5-5.6 -y
+sudo apt-get update && sudo apt-get upgrade -y --fix-missing
 
-    # Install basic tools
-    apt-get install -qq -y build-essential binutils-doc git
+# Install basic tools
+sudo apt-get install -y build-essential binutils-doc git curl htop
 
-    # Install Apache
-    apt-get install -qq -y apache2
+# Install Apache
+sudo apt-get install -y apache2
 
-    # Configure Apache
-    echo "ServerName #{default_host}" | sudo tee /etc/apache2/conf-available/fqdn.conf
-    sudo ln -s /etc/apache2/conf-available/fqdn.conf /etc/apache2/conf-enabled/fqdn.conf
-    a2enmod rewrite
+## Configure Apache
+echo "ServerName localhost" | sudo tee /etc/apache2/conf-available/fqdn.conf #TODO
+sudo ln -sf /etc/apache2/conf-available/fqdn.conf /etc/apache2/conf-enabled/fqdn.conf
+sudo a2enmod rewrite
 
-    # Setup project dir
-    mkdir -p /var/www/#{project_name}/log
-    chown www-data:www-data -R /var/www/#{project_name}
+## Configure VM user
+sudo adduser vagrant www-data
 
-    # Install PHP
-    apt-get install -qq -y php5 php5-cli php5-common php5-gd php5-mysql php5-curl php5-intl php5-mcrypt php5-tidy php5-readline php5-xdebug php-apc php5-memcached php5-imap php5-sqlite php5-xsl php-pear
+# Install PHP (iconv, mbstring, openssl, tokenizer, ctype, pcre, etc) TODO docs
+sudo apt-get install -y php5 php5-cli
 
-    # Configure PHP
-    php5enmod mcrypt
+## PHP modules: xmlrpc, curl, xsl, intl
+sudo apt-get install -y php5-xmlrpc php5-curl php5-xsl php5-intl
 
-    # Display errors On
-    sed -i "s/display_startup_errors = Off/display_startup_errors = On/g" /etc/php5/apache2/php.ini /etc/php5/cli/php.ini
-    sed -i "s/display_errors = Off/display_errors = On/g" /etc/php5/apache2/php.ini /etc/php5/cli/php.ini
+## Install APC
+sudo apt-get install -y php5-apcu
 
-    # Configure xdebug
-    echo "xdebug.remote_enable=on
-    xdebug.remote_connect_back=on
-    xdebug.remote_autostart=on
-    xdebug.remote_handler=dbgp
-    xdebug.remote_host=localhost
-    xdebug.remote_port=9001
-    xdebug.remote_mode=req
-    xdebug.idekey=PHPSTORM" > /etc/php5/apache2/conf.d/21-xdebug.ini > /etc/php5/cli/conf.d/21-xdebug.ini
+## Install PEAR
+sudo apt-get install -y php-pear
 
-    # Set timezone
-    echo date.timezone = Etc/GMT > /etc/php5/apache2/conf.d/20-date.ini > /etc/php5/cli/conf.d/20-date.ini
+## Display errors On
+sudo sed -i "s/display_startup_errors = Off/display_startup_errors = On/g" /etc/php5/apache2/php.ini /etc/php5/cli/php.ini
+sudo sed -i "s/display_errors = Off/display_errors = On/g" /etc/php5/apache2/php.ini /etc/php5/cli/php.ini
 
-    # Install MySQL
-    echo mysql-server     mysql-server/root_password        password local | debconf-set-selections
-    echo mysql-server     mysql-server/root_password_again  password local | debconf-set-selections
-    apt-get -yq install mysql-client mysql-server
+## Short opentag On
+sudo sed -i "s/short_open_tag = Off/short_open_tag = On/g" /etc/php5/apache2/php.ini /etc/php5/cli/php.ini
 
-    # Allow MySQL root access from any host
-    sed -i 's/^bind-address[[:blank:]]*=[[:blank:]]*127.0.0.1$/bind-address = 0.0.0.0/g' /etc/mysql/my.cnf
-    echo "GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY 'local' WITH GRANT OPTION" | mysql -u root --password=local
-    echo "GRANT PROXY ON ''@'' TO 'root'@'%' WITH GRANT OPTION" | mysql -u root --password=local
+## Configure xdebug
+sudo apt-get install -y php5-xdebug
+echo "xdebug.remote_enable=on
+xdebug.remote_connect_back=on
+xdebug.idekey=IDE" | sudo tee /etc/php5/apache2/conf.d/21-xdebug.ini /etc/php5/cli/conf.d/21-xdebug.ini
 
-    # Install phpmyadmin
-    echo phpmyadmin       phpmyadmin/reconfigure-webserver  text     apache2     | debconf-set-selections
-    echo phpmyadmin       phpmyadmin/dbconfig-install       boolean  true        | debconf-set-selections
-    echo phpmyadmin       phpmyadmin/app-password-confirm   password local       | debconf-set-selections
-    echo phpmyadmin       phpmyadmin/mysql/admin-pass       password local       | debconf-set-selections
-    echo phpmyadmin       phpmyadmin/password-confirm       password local       | debconf-set-selections
-    echo phpmyadmin       phpmyadmin/setup-password         password local       | debconf-set-selections
-    echo phpmyadmin       phpmyadmin/mysql/app-pass         password local       | debconf-set-selections
-    apt-get -yq install phpmyadmin
+## Set timezone
+echo "date.timezone=Etc/GMT" | sudo tee /etc/php5/apache2/conf.d/20-date.ini /etc/php5/cli/conf.d/20-date.ini
 
-    # Restart Services
-    service mysql restart
+# Install MySQL
+echo mysql-server     mysql-server/root_password        password local | sudo debconf-set-selections
+echo mysql-server     mysql-server/root_password_again  password local | sudo debconf-set-selections
+sudo apt-get -y install mysql-client mysql-server
 
-    # Install NodeJs anb tools
-    echo "Install NodeJs anb tools..."
-    curl -sL https://deb.nodesource.com/setup | bash -
-    apt-get install -yq nodejs
-    npm install -gq bower
+## Allow MySQL root access from any host
+sudo sed -i 's/^bind-address[[:blank:]]*=[[:blank:]]*127.0.0.1$/bind-address = 0.0.0.0/g' /etc/mysql/my.cnf
+echo "GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY 'local' WITH GRANT OPTION" | mysql -u root --password=local
+echo "GRANT PROXY ON ''@'' TO 'root'@'%' WITH GRANT OPTION" | mysql -u root --password=local
 
-    # Install composer
-    curl -sS https://getcomposer.org/installer | php && mv composer.phar /usr/local/bin/composer
-    sudo -u vagrant -H composer --no-ansi -q global require "fxp/composer-asset-plugin:1.0.0-beta3"   # Install NPM/Bower Dependency Manager for Composer
-    sudo -u vagrant -H composer --no-ansi -q global require fabpot/php-cs-fixer @stable               # Install PHP Coding Standards Fixer
-    sudo -u vagrant -H echo export PATH=$PATH:/home/vagrant/.composer/vendor/bin >> .bashrc
+## Install phpmyadmin
+echo phpmyadmin       phpmyadmin/reconfigure-webserver  text     apache2     | sudo debconf-set-selections
+echo phpmyadmin       phpmyadmin/dbconfig-install       boolean  true        | sudo debconf-set-selections
+echo phpmyadmin       phpmyadmin/app-password-confirm   password local       | sudo debconf-set-selections
+echo phpmyadmin       phpmyadmin/mysql/admin-pass       password local       | sudo debconf-set-selections
+echo phpmyadmin       phpmyadmin/password-confirm       password local       | sudo debconf-set-selections
+echo phpmyadmin       phpmyadmin/setup-password         password local       | sudo debconf-set-selections
+echo phpmyadmin       phpmyadmin/mysql/app-pass         password local       | sudo debconf-set-selections
+sudo apt-get -y install phpmyadmin
 
-    # Configure VM user
-    adduser vagrant www-data
+# Install NodeJs anb tools
+echo "Install NodeJs anb tools..."
+curl -sL https://deb.nodesource.com/setup | bash -
+apt-get install -yq nodejs
+npm install -gq bower
+
+# Install composer
+curl -sS https://getcomposer.org/installer | php && mv composer.phar /usr/local/bin/composer
+sudo -u vagrant -H composer --no-ansi -q global require "fxp/composer-asset-plugin:1.0.0-beta3"   # Install NPM/Bower Dependency Manager for Composer
+sudo -u vagrant -H composer --no-ansi -q global require fabpot/php-cs-fixer @stable               # Install PHP Coding Standards Fixer
+sudo -u vagrant -H echo export PATH=$PATH:/home/vagrant/.composer/vendor/bin >> .bashrc
+
+# Phing Installation TODO via composer
+sudo pear channel-discover pear.phing.info
+sudo pear upgrade-all
+sudo pear install -Z --alldeps phing/phing
+
+# Installing OpenJDK 7
+sudo apt-get install -y openjdk-7-jre
+
+# Restart Services
+sudo service mysql restart
+sudo service apache2 restart
+
+# Setup PATH
+sudo -u vagrant -H echo "export PATH=/vagrant/bin:\$PATH" >>  /home/vagrant/.bashrc
 
 SCRIPT
 
@@ -172,21 +147,23 @@ SCRIPT
 Vagrant.configure("2") do |config|
 
   # Define VM box to use
-  config.vm.box = "ubuntu/trusty#{ARCH}"
+  config.vm.box = "ubuntu/precise#{ARCH}"
   config.vm.box_version = ">= 14.04"
+  # TODO
+  #config.vm.box_version = ">= 12.04" #tested on v20150512.0.1
 
-  # Config vagrant-cachier
-  if Vagrant.has_plugin?("vagrant-cachier")
-    config.cache.scope = :box
-  end
+  # TODO Setup Network
+  config.vm.network "private_network", type: "dhcp"
 
-  # Set share folder
-  config.vm.synced_folder "./" , "/var/www/#{project_name}", :mount_options => ["dmode=777", "fmode=666"]
+  ## Options setup Network
+  #config.vm.network :public_network
+  #config.vm.network "public_network", bridge: "wlan0"
+  #config.vm.network "public_network", bridge: "eth0"
 
-  # Provider-specific configuration so you can fine-tune VirtualBox for Vagrant.
-  # These expose provider-specific options.
+  # TODO Setup VM
+  
+  config.vm.hostname = project_host
   config.vm.provider :virtualbox do |vm|
-    # Use VBoxManage to customize the VM. For example to change memory:
     vm.customize ["modifyvm", :id, "--memory", MEMORY.to_i]
     vm.customize ["modifyvm", :id, "--cpus", CORES.to_i]
 
@@ -194,29 +171,38 @@ Vagrant.configure("2") do |config|
       vm.customize ["modifyvm", :id, "--ioapic", "on"]
     end
   end
+  
+  # Vagrant plugins
+  
+  ## Config vagrant-cachier
+  if Vagrant.has_plugin?("vagrant-cachier")
+    config.cache.scope = :box
+  end
 
-  # Use hostonly network with a static IP Address and enable
-  # hostmanager so we can have a custom domain for the server
-  # by modifying the host machines hosts file
+  ## TODO Config vagrant-hostmanager 
   if Vagrant.has_plugin?("vagrant-hostmanager")
     config.hostmanager.enabled = true
     config.hostmanager.manage_host = true
-    config.vm.define project_name do |node|
-      node.vm.hostname = default_host
-      node.vm.network :private_network, ip: ip_address
-      node.hostmanager.aliases = hostmanager_aliases
+    config.hostmanager.aliases = project_host_alias.split(" ")
+    config.hostmanager.ip_resolver = proc do |machine|
+      result = ""
+      machine.communicate.execute("ifconfig eth1") do |type, data|
+        result << data if type == :stdout
+      end
+      (ip = /inet addr:(\d+\.\d+\.\d+\.\d+)/.match(result)) && ip[1]
     end
     config.vm.provision :hostmanager
   end
 
+  # Prepare script run once at first start `vagrant up`
   config.ssh.shell = "bash -c 'BASH_ENV=/etc/profile exec bash'"
 
-  if Dir.glob("#{File.dirname(__FILE__)}/.vagrant/machines/#{project_name}/*/id").empty?
-    config.vm.provision :shell, :inline => $script
+  if Dir.glob("#{File.dirname(__FILE__)}/.vagrant/machines/default/*/id").empty?
+    config.vm.provision :shell, :inline => $setup, privileged: true
+    config.vm.provision "app", type: "shell", inline: $setup_app, privileged: true
   end
 
-  config.vm.provision :shell, :inline => $virtual_host
   config.vm.provision :shell, :inline => $server_script
-  config.vm.provision :shell, :inline => $check
+  config.vm.provision "check", type: "shell", inline: $check, privileged: true
 
 end
